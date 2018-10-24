@@ -435,6 +435,16 @@ class Bulldog(Dog):
     def run(self, speed):
         return "{} runs {}".format(self.name, speed)
 ```
+练习：“饥饿的小狗”使用相同的文件，向Dog类添加一个实例属性is_hungry = True。然后添加一个eat()方法，当调用eat()方法时将is_hungry设置为False。找出喂饱每只狗的最佳方法然后输出"My dogs are hungry"。如果全部的狗都不饿，最后输出如下：
+```
+I have 3 dogs. 
+Tom is 6. 
+Fletcher is 7. 
+Larry is 9. 
+And they're all mammals, of course. 
+My dogs are not hungry.
+```
+(还有两个练习 见原文链接 不想写了 答案也见原文链接)
 
 ## 结尾
 现在你应该了解了什么是类，你为什么需要使用它以及如何使用父类和子类让你的程序结构更好。
