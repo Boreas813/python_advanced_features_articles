@@ -68,5 +68,375 @@ class Dog:
 ```
 上述例子中每个狗都有一个一个名字和年龄，在你真的开始创建不同的狗时会起作用。记住：类仅仅是定义了狗这个类，并没有指定名字和年龄来创建狗的实例，我们稍后会讲到。
 
-相似的，self这个变量也是类的一个实例。由于每个实例都有不同的属性值，所以我们这样操作属性 Dog\.name = name
+相似的，self这个变量也是类的一个实例。由于每个实例都有不同的属性值，所以我们这样操作属性 Dog\.name = name,而不是self\.name = name。但是每只狗都有不同的名字，我们要给每个实例赋予不同的值。因此我们需要self这个特殊变量，它可以帮我们跟踪每个类的单独实例。
 
+提示：你不需要手动调用__init__()方法；当你创建“Dog”的实例是会被自动调用。
+
+## 类属性
+实例属性是不同的实例拥有的属性，类属性是该类的全部实例都拥有的属性——本例中全部实例为*所有的狗*
+```
+class Dog:
+
+    # Class Attribute
+    species = 'mammal'
+
+    # Initializer / Instance Attributes
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+```
+所以情况就是，每只狗都有一个独有的名字和年龄，所有的狗都是哺乳动物(species = 'mammal'定义了这个)
+
+让我们开始创建一些狗吧...
+
+## 实例化对象(Instantiating Objects)
+实例化意思就是创建一个某个类的新的独特的实例。
+
+举个栗子：
+```
+>>> class Dog:
+...     pass
+...
+>>> Dog()
+<__main__.Dog object at 0x1004ccc50>
+>>> Dog()
+<__main__.Dog object at 0x1004ccc90>
+>>> a = Dog()
+>>> b = Dog()
+>>> a == b
+False
+```
+开始我们定义了一个新的Dog()类，然后我们创建了两个新的狗，每个都分配成为了不同的对象。创建一个类的实例只需要使用类名加圆括号。然后我们实例化了两个狗分配到a和b变量中去，然后我们比较这两个实例是否相等，答案是否定的。
+
+你感觉一个实例的type是什么呢？
+```
+>>> class Dog:
+...     pass
+...
+>>> a = Dog()
+>>> type(a)
+<class '__main__.Dog'>
+```
+
+再看一个稍微复杂点的例子...
+```
+class Dog:
+
+    # Class Attribute
+    species = 'mammal'
+
+    # Initializer / Instance Attributes
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+
+# Instantiate the Dog object
+philo = Dog("Philo", 5)
+mikey = Dog("Mikey", 6)
+
+# Access the instance attributes
+print("{} is {} and {} is {}.".format(
+    philo.name, philo.age, mikey.name, mikey.age))
+
+# Is Philo a mammal?
+if philo.species == "mammal":
+    print("{0} is a {1}!".format(philo.name, philo.species))
+```
+提示：注意观察我们如何使用“.”符号来访问每个对象的属性。
+
+将上述代码保存为dog_class.py，然后运行程序你会看到：
+```
+Philo is 5 and Mikey is 6.
+Philo is a mammal!
+```
+## 刚才发生了什么？？？
+我们创建了一个Dog()类的实例，然后将实例赋值给philo。我们实例化类的时候传递了两个参数到括号里，"philo"和5，代表狗的名字和年龄。
+
+这些属性会被传递到__init__方法中，当你创建一个新的实例，将名字和年龄赋值到对象的时候__init__会被调用。你可能比较困惑为什么我们没有传递self这个参数。
+
+这就是Python的魔法，当你实例化的时候，python会自动识别self是什么然后将它传递到__init__方法中。
+
+## 回顾练习(#1)
+练习：“年龄最大的狗”
+使用Dog类实例化三个不同的狗，每只狗有一个不同的年龄。然后写一个函数叫做get_biggest_number()，这个函数接收任意数量的年龄(使用*args)然后返回最大的一个数值。然后输出年龄最大的狗的年龄：
+```
+The oldest dog is 7 years old.
+```
+## 实例方法
+实例方法定义在一个类的内部一般获取实例的内容。他还可以执行带有对象属性的各种操作。像__init__方法一样第一个参数总是self：
+```
+class Dog:
+
+    # Class Attribute
+    species = 'mammal'
+
+    # Initializer / Instance Attributes
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+    # instance method
+    def description(self):
+        return "{} is {} years old".format(self.name, self.age)
+
+    # instance method
+    def speak(self, sound):
+        return "{} says {}".format(self.name, sound)
+
+# Instantiate the Dog object
+mikey = Dog("Mikey", 6)
+
+# call our instance methods
+print(mikey.description())
+print(mikey.speak("Gruff Gruff"))
+```
+将上述代码存为dog_instance_methods.py然后运行：
+```
+Mikey is 6 years old
+Mikey says Gruff Gruff
+```
+在speak()方法中我们定义了一个行为，每次调用这个方法，就会返回狗的名字和叫声。你还可以给狗赋予其他的行为吗？回到文章最开始看看其他的例子然后开始尝试吧。
+
+## 修改属性
+你可以通过一些行为来更改属性值:
+```
+>>> class Email:
+...     def __init__(self):
+...         self.is_sent = False
+...     def send_email(self):
+...         self.is_sent = True
+...
+>>> my_email = Email()
+>>> my_email.is_sent
+False
+>>> my_email.send_email()
+>>> my_email.is_sent
+True
+```
+这里我添加了一个发送邮件的方法，这个方法会将is_sent的值更新为True.
+
+## python对象继承(Python Object Inheritance)
+继承的意思是A类从B类得到B类中的属性和方法。其中A类被叫做子类(child classes)，被继承的类B叫做父类(parent classes)。
+
+请记住子类是覆盖或者扩展父类的功能的。换句话说，子类继承父类全部的属性和行为但是也可以修改这些行为。类的基础类叫做object， 其他的所有类都继承于它。
+
+当你定义一个新的类时，python3隐式的使用object作为父类。所以一下两种定义是相等的：
+```
+class Dog(object):
+    pass
+
+# In Python 3, this is the same as:
+
+class Dog:
+    pass
+```
+提示：在python2中类分为[新式类和旧式类](https://wiki.python.org/moin/NewClassVsClassicClass)。 我不会深入细节，但是通常你会选择object作为父类确保你在python2的OOP中定义了一个新式类。
+
+## 例子：小狗公园
+假设我们在一个小狗公园里。这里有很多属性不同的狗的对象。一些狗在跑，有些在抻懒腰另一些只是站着不动看其他的狗。此外每只狗都有一个主人给的名字，一个年龄，每只狗都是活着的。
+
+怎么区分其中一只狗和剩余的狗呢？用狗的品种怎么样：
+```
+>>> class Dog:
+...     def __init__(self, breed):
+...         self.breed = breed
+...
+>>> spencer = Dog("German Shepard")
+>>> spencer.breed
+'German Shepard'
+>>> sara = Dog("Boston Terrier")
+>>> sara.breed
+'Boston Terrier'
+```
+不同品种的狗会有不同的行为。我们来为每个不同品种分开创建不同的类，这些类是Dog类的子类。
+## 扩展一个父类的功能
+创建一个叫dog_inheritance.py的文件：
+```
+# 父类
+class Dog:
+
+    # 类的属性
+    species = 'mammal'
+
+    # 实例化/实例属性
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+    # 实例方法
+    def description(self):
+        return "{} is {} years old".format(self.name, self.age)
+
+    # 实例方法
+    def speak(self, sound):
+        return "{} says {}".format(self.name, sound)
+
+
+# 子类 (继承于Dog类)
+class RussellTerrier(Dog):
+    def run(self, speed):
+        return "{} runs {}".format(self.name, speed)
+
+
+# 子类 (继承于Dog类)
+class Bulldog(Dog):
+    def run(self, speed):
+        return "{} runs {}".format(self.name, speed)
+
+
+# 子类继承父类的属性和方法
+jim = Bulldog("Jim", 12)
+print(jim.description())
+
+# 子类也有自己的属性和方法
+print(jim.run("slowly"))
+```
+在你敲这段代码的时候阅读以下注释会帮助你理解到底发生了什么，在你运行程序前你可以预测以下输出是什么。
+
+你会看到：
+```
+Jim is 12 years old
+Jim runs slowly
+```
+我们没有添加特殊的属性或方法来区分RussellTerrier品种或者Bulldog品种的狗，但是现在他们有了不同的类，我们可以在实例化时给他们不同的属性定义不同的速度。
+
+## 父类 vs. 子类
+isinstance()函数用来判断一个实例是否是也是某个父类的实例。
+
+将下面的代码存为dog_isinstance.py：
+```
+# Parent class
+class Dog:
+
+    # Class attribute
+    species = 'mammal'
+
+    # Initializer / Instance attributes
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+    # instance method
+    def description(self):
+        return "{} is {} years old".format(self.name, self.age)
+
+    # instance method
+    def speak(self, sound):
+        return "{} says {}".format(self.name, sound)
+
+
+# Child class (inherits from Dog() class)
+class RussellTerrier(Dog):
+    def run(self, speed):
+        return "{} runs {}".format(self.name, speed)
+
+
+# Child class (inherits from Dog() class)
+class Bulldog(Dog):
+    def run(self, speed):
+        return "{} runs {}".format(self.name, speed)
+
+
+# Child classes inherit attributes and
+# behaviors from the parent class
+jim = Bulldog("Jim", 12)
+print(jim.description())
+
+# Child classes have specific attributes
+# and behaviors as well
+print(jim.run("slowly"))
+
+# Is jim an instance of Dog()?
+print(isinstance(jim, Dog))
+
+# Is julie an instance of Dog()?
+julie = Dog("Julie", 100)
+print(isinstance(julie, Dog))
+
+# Is johnny walker an instance of Bulldog()
+johnnywalker = RussellTerrier("Johnny Walker", 4)
+print(isinstance(johnnywalker, Bulldog))
+
+# Is julie and instance of jim?
+print(isinstance(julie, jim))
+```
+输出：
+```
+('Jim', 12)
+Jim runs slowly
+True
+True
+False
+Traceback (most recent call last):
+  File "dog_isinstance.py", line 50, in <module>
+    print(isinstance(julie, jim))
+TypeError: isinstance() arg 2 must be a class, type, or tuple of classes and types
+```
+输出说得通吗？jim和julie都是Dog()类的实例，johnnywalker不是Bulldog()类的实例。然后作为一个完整性检查，我们测试了julie是否是jim的实例，这是不存在的，因为jim是一个类的实例，而不是类本身，这就是TypeError的原因。
+
+## 覆盖/重写父类的功能
+子类可以覆盖父类的属性或行为。举个例子：
+```
+>>> class Dog:
+...     species = 'mammal'
+...
+>>> class SomeBreed(Dog):
+...     pass
+...
+>>> class SomeOtherBreed(Dog):
+...     species = 'reptile'
+...
+>>> frank = SomeBreed()
+>>> frank.species
+'mammal'
+>>> beans = SomeOtherBreed()
+>>> beans.species
+'reptile'
+```
+SomeBreed()类从父类中继承了species属性，SomeOtherBreed()类重写了species属性将其设置为reptile。
+## 回顾练习(#2)
+练习：“小狗继承”创建一个容纳小狗实例的Pets类;这个类完全独立于Dog类。换句话说，Dog类不会从Pets类继承。然后将三个dog实例分配给Pets类的一个实例。从下面的代码开始。将文件保存为pets_class.py。你的输出应该如下所示:
+```
+I have 3 dogs. 
+Tom is 6. 
+Fletcher is 7. 
+Larry is 9. 
+And they're all mammals, of course.
+```
+开始代码：
+```
+# Parent class
+class Dog:
+
+    # Class attribute
+    species = 'mammal'
+
+    # Initializer / Instance attributes
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+    # instance method
+    def description(self):
+        return "{} is {} years old".format(self.name, self.age)
+
+    # instance method
+    def speak(self, sound):
+        return "{} says {}".format(self.name, sound)
+
+# Child class (inherits from Dog class)
+class RussellTerrier(Dog):
+    def run(self, speed):
+        return "{} runs {}".format(self.name, speed)
+
+# Child class (inherits from Dog class)
+class Bulldog(Dog):
+    def run(self, speed):
+        return "{} runs {}".format(self.name, speed)
+```
+
+## 结尾
+现在你应该了解了什么是类，你为什么需要使用它以及如何使用父类和子类让你的程序结构更好。
+
+需要注意的是OOP是一种编程范式而不是python的概念。大对数现代编程语言例如Java，C#，C++都主要使用OOP。所以好消息是学习面向对象编程基础对你来说很有价值，不管你是否使用python工作。
