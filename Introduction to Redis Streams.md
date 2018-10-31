@@ -121,3 +121,231 @@ Redis stream使用不同命令来支持上述三种查询模式。下一章会�
 
 上述命令我们写入STREAMS mystream 0所以我们想要在mystream中ID比0-0大的信息。上述命令返回了key的名字，这是因为实际上可以调用这个命令同时从超过一个stream中读取数据。举个例子，可以这样写：STREAMS mystream otherstream 0 0。需要注意的是在STREAMS选项后我们要提供key的名字和ID。所以STREAMS选项必须永远在命令的末尾。
 
+我们可以指定末尾ID来获取新的消息，同时**XREAD**可以同时访问多个stream，除此之外看起来和**XRANGE**命令没什么不同。但是有趣的部分是我们可以轻松将**XREAD**转换为*阻塞命令*，通过指定**BLOCK**参数：
+```
+> XREAD BLOCK 0 STREAMS mystream $
+```
+在上述例子中，我们删掉了**COUNT**同时制定了一个新参数**BLOCK**将超时参数设为0.除此之外，我传递了一个特殊ID $ 到正常ID mystream的后面。这个特殊ID意思是**XREAD**应该使用现在stream中存储的最大ID作为起始ID，所以我们这回只会收到从监听开始后新的消息了。这和Unix命令 tail -f 很相似。
+
+当我们使用**BLOCK**命令时不非得使用特殊ID $，我们可以使用任何有效ID。当命令可以马上处理我们的请求时它不会阻塞，否则就会阻塞。通常来讲如果我们想消费新产生的数据时使用$，然后我们记下这个ID用来再次调用。
+
+阻塞**XREAD**也可以监听多个stream。如果至少一个steam中的元素大于你指定的ID，这个命令就会同步返回结果。要不然这个命令会阻塞到至少从一个stream中获取到数据。
+
+和阻塞list相似的是stream也是FIFO风格的。最先阻塞并监听steam的客户端会最先得到新的数据解除阻塞。
+
+**XREAD**只有**COUNT**和**BLOCK**两个参数，这是一个非常基本的命令。可以使用消费者组API来使用更多更强大的特性，但是使用消费者组是基于**XREADGROUP**命令的，下一章会讲到。
+
+## 消费者组(Consumer groups)
+当手头的工作是让不同的客户端消费同一个stream时，**XREAD**已经提供了将消息*扇出*到N个客户端的方法，可能你会用到slave提高可扩展性。但是目前的问题是我们不想将一个stream中相同的消息分发给多客户端，而是将stream中消息的子集分发给指定的客户端。
+
+现在假设我们有三个消费者C1,C2,C3，有一个stream包含消息1,2,3,4,5,6,7，然后我们想按下面的图表处理这些消息：
+```
+1 -> C1
+2 -> C2
+3 -> C3
+4 -> C1
+5 -> C2
+6 -> C3
+7 -> C1
+```
+Redis使用*消费者组*的概念来实现这个功能。
+
+一个消费者组像一个*pseudo consumer*一样从stream中获取数据，实际上服务于多个消费者，提供如下保证：
+
+1. 每条信息会被不同的消费者消费，绝对不会将相同数据分发到多个消费者。
+2. 消费者通过一个必须指定的区分大小写的名字划分进消费者组。这意味着即使断开连接后，消费者组也会保持自身状态，直到客户端再次声明成为消费者。这也意味着这是每个客户端的唯一标识符。
+3. 每个消费者组有一个*first ID never consumed*的概念，当消费者请求新的信息时，它可以提供之前从未分发过得消息。
+4. 使用消息需要特定的命令显式确认：此消息已正确处理，因此可以从消费者组中驱逐(evicted)。
+5. 消费者组跟踪所有目前分发的消息，这个意思是消息被分发给一些组中的消费者，但是还没有被确认为已处理。感谢这个特性，当访问stream的消息历史时，每个消费者*只会看到分发到它的消息*。
+
+某种意义上来说，一个消费者组可以被认为是stream的某种状态：
+```
++----------------------------------------+
+| consumer_group_name: mygroup           |
+| consumer_group_stream: somekey         |
+| last_delivered_id: 1292309234234-92    |
+|                                        |
+| consumers:                             |
+|    "consumer-1" with pending messages  |
+|       1292309234234-4                  |
+|       1292309234232-8                  |
+|    "consumer-42" with pending messages |
+|       ... (and so forth)               |
++----------------------------------------+
+```
+如果你看到这个从这个角度来看,很容易理解消费者组可以做什么,它是如何能够为消费者提供他们的历史等待消息,以及消费者如何要求新消息只会配上消息id大于last_delivered_id。与此同时，如果您将使用者组看作是Redis流的辅助数据结构，那么很明显，单个流可以有多个使用者组，它们有不同的使用者组。实际上，同一个流甚至可以让客户端不通过XREAD读取组，而让客户端在不同的消费组中通过XREADGROUP读取。（机翻 看不懂）
+
+基本的消费者组命令如下：
+- **XGROUP** 用来创建、销毁和管理消费者组
+- **XREADGROUP** 通过消费者组从stream中读取
+- **XACK** 允许消费者将接收到的消息标记为已处理
+
+## 创建一个消费者组
+
+假设现在有一个key为mystream的stream，如下命令创建一个消费者组：
+```
+> XGROUP CREATE mystream mygroup $
+OK
+```
+注意：目前不支持为不存在的stream创建消费者组，然而不久后我们会为**XGROUP**命令添加可选的参数来创建一个空的stream。
+
+上述命令我们必须指定一个ID来创建一个消费者组，这里使用的$。这是因为在消费者组创建的时候，它必须知道第一个消费者连接上时要serve什么内容。如果我们使用$的话，那么只有现在开始新产生的消息将会被推给组里的消费者。如果我们使用()的话消费者组会消费掉这个stream历史中全部的消息。当然，你也可以指定其他有效的ID。你需要明白的是消费者组会根据你选择的ID来分发比该ID更大的消息。因为$代表当前stream中最大的ID，选择$的效果是消费新的消息。
+
+现在消费者组创建好了我们可以马上通过消费者组来读取消息，使用**XREADGROUP**命令。我们通过两个叫做Alice和Bob的消费者来看看系统如何返回不同的信息。
+
+**XREADGROUP**和**XREAD**很相似都提供**BLOCK**操作，同时这也是一个同步命令。这里有一个必须要指定的强制选项叫做**GROUP**，它有两个参数：消费者组的名字和想要读取的消费者名字。**COUNT**选项也是支持的，用法和**XREAD**相同。
+
+在开始读取之前，我们先放一点数据进去：
+```
+> XADD mystream * message apple
+1526569495631-0
+> XADD mystream * message orange
+1526569498055-0
+> XADD mystream * message strawberry
+1526569506935-0
+> XADD mystream * message apricot
+1526569535168-0
+> XADD mystream * message banana
+1526569544280-0
+```
+注意：这里message是键，各种水果是键值，记住stream的每条数据就像一个小型字典。
+
+是时候尝试使用消费者组读取一些东西了：
+```
+> XREADGROUP GROUP mygroup Alice COUNT 1 STREAMS mystream >
+1) 1) "mystream"
+   2) 1) 1) 1526569495631-0
+         2) 1) "message"
+            2) "apple"
+```
+**XREADGROUP**的回显和**XREAD**很像。注意GROUP \<group-name> \<consumer-name> 这个陈述，它指定了我用mygroup消费组并且我是消费者Alice来从stream中读取数据。当某个消费组内的消费者要执行某些操作时，它必须在组内指定唯一的名字用来标识消费者。
+
+上述命令还有一个非常重要的细节，在强制性参数**STREAMS**后键mystream需求的ID是特殊ID>。这个特殊ID只在消费组上下文中有效，它的意思是：**目前为止还没有分发给其他消费者的消息。**
+
+上述操作方式一般是你常用到的，同样你也可以指定真实的ID比如()或者其他有效ID，在这个例子里我们请求**XREADGROUP**提供**挂起消息的历史记录**，在上述例子中不会看到新的消息。所以基于我们选择的ID，**XREADGROUP**会有如下不同的行为：
+
+- 如果ID为特殊ID > 那么命令会返回从没有被分发过得新的消息然后更新消费组的最后使用ID
+- 如果ID是任何数值的话，命令会访问*挂起消息的历史记录(history of pending messages)*。这是那些已经分发给指定消费者，但是还没有被**XACK**确认的消息。
+
+我们可以将ID设为0来确认这个行为，去掉**COUNT**参数：我们只看挂起消息，这里有一条apple的信息：
+```
+> XREADGROUP GROUP mygroup Alice STREAMS mystream 0
+1) 1) "mystream"
+   2) 1) 1) 1526569495631-0
+         2) 1) "message"
+            2) "apple"
+```
+
+如果我们确认这条消息被处理，那么它就不会再出现在挂起消息历史中，所以系统再也不会报告任何东西了：
+```
+> XACK mystream mygroup 1526569495631-0
+(integer) 1
+> XREADGROUP GROUP mygroup Alice STREAMS mystream 0
+1) 1) "mystream"
+   2) (empty list or set)
+```
+
+如果你不知道**XACK**是如何运作的也不用慌，这个概念仅仅是处理过的信息不再是我们可以访问的历史信息。
+
+现在轮到Bob来读取一些东西了：
+```
+> XREADGROUP GROUP mygroup Bob COUNT 2 STREAMS mystream >
+1) 1) "mystream"
+   2) 1) 1) 1526569498055-0
+         2) 1) "message"
+            2) "orange"
+      2) 1) 1526569506935-0
+         2) 1) "message"
+            2) "strawberry"
+```
+Bob通过同样的消费组mygroup请求最多两条消息。这里Redis就是发送新的消息。正如你看到的，'apple'是不会被分发的，因为它已经被分发给Alice了，所以Bob得到了orange和strawberry。
+
+这样Alice，Bob和其他同组的消费者就可以从同一个stream中读取不同的消息，读取他们还没有处理的消息历史或者将其标记为已处理。这样就可以创建不同的拓扑和语义来使用stream了。
+
+记住这样几件事：
+
+- 消费者在第一次提到他们的时候自动创建，不需要单独创建。
+- 你也可以用**XREADGROUP**从多个key上读取数据，要实现这个目的你需要在每个stream中创建同名的消费组。这个一般不常用到，但值得一提的是在技术上是可行的。
+- **XREADGROUP**是一个*写入命令*尽管它从stream读取数据，作为读取数据的附带效果消费组被修改了，所以它只能在主实例中被调用。
+
+下面展示一段用Ruby写的使用消费组的例子。Ruby代码的编写方式几乎可以让任何有经验的使用其他语言进行编程的程序员都能读懂:
+```
+require 'redis'
+
+if ARGV.length == 0
+    puts "Please specify a consumer name"
+    exit 1
+end
+
+ConsumerName = ARGV[0]
+GroupName = "mygroup"
+r = Redis.new
+
+def process_message(id,msg)
+    puts "[#{ConsumerName}] #{id} = #{msg.inspect}"
+end
+
+$lastid = '0-0'
+
+puts "Consumer #{ConsumerName} starting..."
+check_backlog = true
+while true
+    # Pick the ID based on the iteration: the first time we want to
+    # read our pending messages, in case we crashed and are recovering.
+    # Once we consumer our history, we can start getting new messages.
+    if check_backlog
+        myid = $lastid
+    else
+        myid = '>'
+    end
+
+    items = r.xreadgroup('GROUP',GroupName,ConsumerName,'BLOCK','2000','COUNT','10','STREAMS',:my_stream_key,myid)
+
+    if items == nil
+        puts "Timeout!"
+        next
+    end
+
+    # If we receive an empty reply, it means we were consuming our history
+    # and that the history is now empty. Let's start to consume new messages.
+    check_backlog = false if items[0][1].length == 0
+
+    items[0][1].each{|i|
+        id,fields = i
+
+        # Process the message
+        process_message(id,fields)
+
+        # Acknowledge the message as processed
+        r.xack(:my_stream_key,GroupName,id)
+
+        $lastid = id
+    }
+end
+```
+正如你看到的一样这里开始消费历史信息，就是我们的挂起信息。因为消费者可能之前崩溃过，这么做就很有用，所以在重启之后我们先重新读一遍分发给我们但是我们没有进行处理确认的消息。这样我们可以一次或多次处理相同信息。（至少在消费者失效的情况下是这样的，但是也可能是Redis持久化和应答的问题，请查阅关于该主题的特定章节）。
+
+一旦我们消费完历史消息，我们就得到一个空的消息list，然后我们设置ID为>开始消费新的消息。
+
+## 从永久性故障中恢复
+
+上面的示例允许我们编写同消费组的消费者，处理每个消息的子集，在故障后重新读取分发来的消息。然而真实环境下消费者可能会永久性故障然后不可恢复了。如果消费者的挂起消息因为某些原因停止并且再也无法恢复，会发生什么情况？
+
+Redis消费组适用于这种情况下的特性，声明一个指定的消费者然后将该消费者挂起的信息转移到其他消费者名下。
+
+这个过程的第一步使用**XPENDING**命令来可视化消费组中的挂起实例。这是一条只读命令，可以在任何时候被安全调用，不会改变任何消息的所有者。简单格式的话，这条命令需要两个参数stream的名字和消费组的名字。
+```
+> XPENDING mystream mygroup
+1) (integer) 2
+2) 1526569498055-0
+3) 1526569506935-0
+4) 1) 1) "Bob"
+      2) "2"
+```
+这条命令输出在该消息组中的挂起消息总数，这里是2，最小和最大的挂起消息的ID，最后是一个消费者的列表以及他们持有的挂起消息数。这里只有Bob有两条挂起消息因为Alice的消息都已经用**XACK**确认。
+
+我们可以给定**XPENDING**更多的参数来获取更多的信息，完整命令格式如下：
+```
+XPENDING <key> <groupname> [<start-id> <end-id> <count> [<conusmer-name>]]
+```
+to be contiuned...
