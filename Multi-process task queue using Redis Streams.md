@@ -4,7 +4,7 @@
 在这片文章中我会通过一些代码来展示如何使用[Redis stream](https://redis.io/topics/streams-intro)实现python的多进程任务队列。任务队列经常使用在web应用中，这使得在请求/响应的过程中分离耗时的操作实现异步。举个例子，当某人提交了“联系我”的表单后，web应用将消息放进一个消息队列，因此检查垃圾邮件和发送电子邮件的相对耗时的过程发生在web请求之外的一个单独的工作进程中。
 
 脚本大概有100行代码，提供了一个相似的API：
-```
+```python
 queue = TaskQueue('my-queue')
 
 @queue.task
@@ -48,7 +48,7 @@ Redis5.0引入了一种新的数据类型stream，特性为append-only，持久�
 - ack()方法用来将任务标记为执行成功。
 
 代码如下：
-```
+```python
 from collections import namedtuple
 from functools import wraps
 import datetime
