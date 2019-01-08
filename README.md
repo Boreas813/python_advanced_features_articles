@@ -8,6 +8,6 @@ python各模块及特性，优秀文章翻译存档
 
 ### [使用Reids stream实现多进程任务队列](https://github.com/Boreas514/python_advanced_features_articles/blob/master/Multi-process%20task%20queue%20using%20Redis%20Streams.md)
 
-### [python3 pathlib模块：驯服文件系统]()
+### [python3 pathlib模块：驯服文件系统](https://github.com/Boreas514/python_advanced_features_articles/blob/master/Python3%20pathlib%20Module.md)
 
 

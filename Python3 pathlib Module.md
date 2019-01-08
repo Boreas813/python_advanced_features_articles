@@ -6,6 +6,8 @@
 * [python文件路径处理的问题](#1)
 * [创建路径](#2)
 * [读写文件](#3)
+* [分析路径的成分](#4)
+* [移动和删除文件](#5)
 
 
 你是否在处理文件路径时遇到过麻烦？在python3.4及以上，不会再有这种麻烦了！你不再需要这样的代码：
@@ -110,3 +112,49 @@ pathlib库提供了很多方便的方法用来简单地读写文件：
 >>> pathlib.Path('test.md').read_text()
 <the contents of the test.md-file>
 ```
+.resolve()方法会打印全路径。下面我们确认一下当前工作目录：
+```python
+>>> path = pathlib.Path('test.md')
+>>> path.resolve()
+PosixPath('/home/gahjelle/realpython/test.md')
+>>> path.resolve().parent == pathlib.Path.cwd()
+True
+```
+注意当比较路径时，比较的是它们的表示形式。在上面的例子中path.parent不等于pathlib.Path.cwd()，因为path.parent是' . '，pathlib.Path.cwd()是'/home/gahjelle/realpython/'。
+
+<h2 id='4'>分析路径的成分</h2>
+
+路径的不同部分可以被属性轻松获取。基础的例子包括：
+
+* .name：不包含任何路径的文件名
+* .parent：文件所在的文件夹路径，如果路径是文件夹则是文件夹的父路径
+* .stem：去掉后缀的文件名
+* .suffix：文件的扩展名
+* .anchor：路径的盘符
+
+下面是一些实例：
+```python
+>>> path
+PosixPath('/home/gahjelle/realpython/test.md')
+>>> path.name
+'test.md'
+>>> path.stem
+'test'
+>>> path.suffix
+'.md'
+>>> path.parent
+PosixPath('/home/gahjelle/realpython')
+>>> path.parent.parent
+PosixPath('/home/gahjelle')
+>>> path.anchor
+'/'
+```
+注意.parent返回了一个新的Path对象，其他属性返回的是字符串。这意味着.parent可以被链接或者使用/来创建更复杂的新路径：
+```python
+>>> path.parent.parent / ('new' + path.suffix)
+PosixPath('/home/gahjelle/new.md')
+```
+这个[Pathlib备忘录](https://github.com/chris1610/pbpython/blob/master/extras/Pathlib-Cheatsheet.pdf)记载了其他的属性和方法的用法。
+
+<h2 id='5'>启动和删除文件</h2>
+
