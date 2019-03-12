@@ -10,4 +10,4 @@ python各模块及特性，优秀文章翻译存档
 
 #### [python3 pathlib模块：驯服文件系统](https://github.com/Boreas514/python_advanced_features_articles/blob/master/Python3%20pathlib%20Module.md)
 
-#### [在python中读写文件（指南）]()
+#### [在python中读写文件（指南）](https://github.com/Boreas514/python_advanced_features_articles/blob/master/Reading%20and%20Wriging%20Files%20in%20Python%20(Guide).md)
