@@ -130,7 +130,7 @@ Border Terrier\r
 
 ASCII其实是Unicode（UTF-8）的一个子集，这意味着ASCII和Unicode共享相同字符的数值。需要注意的是使用错误的字符编码解析文件会导致严重错误。举个例子，加入一个文件使用UTF-8编码创建，然后你尝试使用ASCII解析它，如果文件中有128个值之外的字符，就会抛出一个错误。
 
-## 使用python打开和关闭文件
+## 在python中打开和关闭文件
 
 当你想要操作文件时第一步是打开文件。这个使用[内置函数open()](https://docs.python.org/3/library/functions.html#open)完成。`open()`需要一个叫文件路径的参数。`open()`函数有一个返回值，[文件对象](https://docs.python.org/3/glossary.html#term-file-object)：
 ```python
@@ -201,9 +201,9 @@ open('abc.txt', 'w')
 ```
 这是`open()`返回的默认对象。
 
-### 缓存二进制文件
+### 缓冲二进制文件类型
 
-缓存二进制文件类型用来读写二进制文件。下面是打开这类文件的例子：
+缓冲二进制文件类型用来读写二进制文件。下面是打开这类文件的例子：
 ```python
 open('abc.txt', 'rb')
 
@@ -217,4 +217,194 @@ open('abc.txt', 'wb')
 >>> file = open('dog_breeds.txt', 'wb')
 >>> type(file)
 <class '_io.BufferedWriter'>
+```
+
+### 原始文件类型
+一个原始文件类型是：
+
+“通常作为二进制和文本流的底层构筑块。”（[资料](https://docs.python.org/3.7/library/io.html#raw-i-o)）
+
+因此通常不使用这个东西。
+
+以下是如何这样打开文件的例子：
+```python
+open('abc.txt', 'rb', buffering=0)
+```
+操作这种文件时`open()`会返回一个`FileIO`文件对象：
+```python
+>>> file = open('dog_breeds.txt', 'rb', buffering=0)
+>>> type(file)
+<class '_io.FileIO'>
+```
+
+## 读写打开的文件
+
+一旦你打开了一个文件后你就要读写这个文件了。首先来读取一个文件。这里有很多种方法可以在一个文件对象上调用，帮助你读取文件：
+
+| 方法 | 该方法的功能 |
+|--|--|
+| `.read(size=-1)` | 从文件中读取`size`个字节长的数据。如果不传参数或参数为`None`或`-1`，则读取整个文件 |
+| `.readline(size=-1)` | 从一行中读取最大`size`个字符。This continues to the end of the line and then wraps back around.如果不传参数或参数为`None`或`-1`，则会读取整行。（或该行剩下的部分） |
+| `.readlines()` | 这个方法读取文件对象剩余的全部行然后作为一个字典返回。|
+
+还是用`dog_breeds.txt`这个文件举例，让我们通过一些例子来使用这些方法。下面是使用`.read()`读取整个文件的例子：
+```python
+>>> with open('dog_breeds.txt', 'r') as reader:
+>>>     # 读取 & 打印整个文件
+>>>     print(reader.read())
+Pug
+Jack Russel Terrier
+English Springer Spaniel
+German Shepherd
+Staffordshire Bull Terrier
+Cavalier King Charles Spaniel
+Golden Retriever
+West Highland White Terrier
+Boxer
+Border Terrier
+```
+使用`.readline()`每次读取五个字节的例子：
+```python
+>>> with open('dog_breeds.txt', 'r') as reader:
+>>>     # Read & print the first 5 characters of the line 5 times
+>>>     print(reader.readline(5))
+>>>     # Notice that line is greater than the 5 chars and continues
+>>>     # down the line, reading 5 chars each time until the end of the
+>>>     # line and then "wraps" around
+>>>     print(reader.readline(5))
+>>>     print(reader.readline(5))
+>>>     print(reader.readline(5))
+>>>     print(reader.readline(5))
+Pug
+
+Jack
+Russe
+ll Te
+rrier
+```
+使用`.readlines()`读取整个文件到一个list的例子：
+```python
+>>> f = open('dog_breeds.txt')
+>>> f.readlines()  # Returns a list object
+['Pug\n', 'Jack Russel Terrier\n', 'English Springer Spaniel\n', 'German Shepherd\n', 'Staffordshire Bull Terrier\n', 'Cavalier King Charles Spaniel\n', 'Golden Retriever\n', 'West Highland White Terrier\n', 'Boxer\n', 'Border Terrier\n']
+```
+上述例子也可以在文件对象外使用`list()`来完成：
+```python
+>>> f = open('dog_breeds.txt')
+>>> list(f)
+['Pug\n', 'Jack Russel Terrier\n', 'English Springer Spaniel\n', 'German Shepherd\n', 'Staffordshire Bull Terrier\n', 'Cavalier King Charles Spaniel\n', 'Golden Retriever\n', 'West Highland White Terrier\n', 'Boxer\n', 'Border Terrier\n']
+```
+
+### 在文件中迭代每一行
+
+读取文件的一个基本操作就是迭代每一行，西面是使用`.readline()`实现迭代的一个例子：
+```python
+>>> with open('dog_breeds.txt', 'r') as reader:
+>>>     # Read and print the entire file line by line
+>>>     line = reader.readline()
+>>>     while line != '':  # The EOF char is an empty string
+>>>         print(line, end='')
+>>>         line = reader.readline()
+Pug
+Jack Russel Terrier
+English Springer Spaniel
+German Shepherd
+Staffordshire Bull Terrier
+Cavalier King Charles Spaniel
+Golden Retriever
+West Highland White Terrier
+Boxer
+Border Terrier
+```
+另一种迭代每一行的方法是使用`.readlines()`方法，`.readlines()`返回一个一个元素是文件一行的list：
+```python
+>>> with open('dog_breeds.txt', 'r') as reader:
+>>>     for line in reader.readlines():
+>>>         print(line, end='')
+Pug
+Jack Russell Terrier
+English Springer Spaniel
+German Shepherd
+Staffordshire Bull Terrier
+Cavalier King Charles Spaniel
+Golden Retriever
+West Highland White Terrier
+Boxer
+Border Terrier
+```
+我们还可以通过遍历文件对象本身来简化上面的例子：
+```python
+>>> with open('dog_breeds.txt', 'r') as reader:
+>>>     # Read and print the entire file line by line
+>>>     for line in reader:
+>>>         print(line, end='')
+Pug
+Jack Russel Terrier
+English Springer Spaniel
+German Shepherd
+Staffordshire Bull Terrier
+Cavalier King Charles Spaniel
+Golden Retriever
+West Highland White Terrier
+Boxer
+Border Terrier
+```
+最后一种实现是更Pythonic的，它更快一级更加高效的使用内存。所以建议你以后的代码用这种方式来实现。
+
+**注意：**上述的一些例子包含`print('some text', end='')`。`end=''`是用来让python只打印从文件里独到的内容，防止python打印额外的换行符换行。
+
+现在让我们进入到写文件。就像读文件一样，文件对象有几种方法用来写文件：
+
+| 方法 | 该方法的功能 |
+| -- | -- |
+| `.write(string)` | 写入字符串到文件 |
+| `.writelines(seq)` | 写入一个序列到文件中。不会自动向序列每一项添加换行符，你要自己添加适当的换行符。 |  
+
+这里有几个快速使用`.write()`和`.writelines()`的例子：
+```python
+with open('dog_breeds.txt', 'r') as reader:
+    # Note: readlines doesn't trim the line endings
+    dog_breeds = reader.readlines()
+
+with open('dog_breeds_reversed.txt', 'w') as writer:
+    # Alternatively you could use
+    # writer.writelines(reversed(dog_breeds))
+
+    # Write the dog breeds to the file in reversed order
+    for breed in reversed(dog_breeds):
+        writer.write(breed)
+```
+### 处理二进制字节
+有时你可能需要处理[字节字符串](https://docs.python.org/3.7/glossary.html#term-bytes-like-object)。通过在`mode`参数上加上`'b'`字符来实现这个操作。所有应用在文件对象上的方法也在二进制字符上适用。
+但是需要注意的是每个方法期待和返回都是一个字节对象：
+```python
+>>> with open(`dog_breeds.txt`, 'rb') as reader:
+>>>     print(reader.readline())
+b'Pug\n'
+```
+可以看出来用`b`参数打开一个文本文档不是那么好玩。现在我们有一个狗的图片：
+![](https://files.realpython.com/media/jack_russell.92348cb14537.png)
+
+你可以真的在python中打开这个文件检查里面的内容！因为[.png文件格式](https://en.wikipedia.org/wiki/Portable_Network_Graphics)有明确定义，文件头是如下的八位字节：
+
+| 值 | 含义 |
+|--|--|
+| 0x89 | 一个用来表示这是一个PNG开始的神奇数字 |
+| 0x50 0x4E 0x47  | PNG的ASCII |
+| 0x0D 0x0A | 一个DOS风格的换行符\r\n |
+| 0x1A | 一个DOS风格的EOF字符 |
+| 0x0A | 一个Unix风格的换行符\n |
+果然，当你打开文件单独读这些字节时，你可以看到他们确实组成了`.png`的文件头：
+```python
+>>> with open('jack_russell.png', 'rb') as byte_reader:
+>>>     print(byte_reader.read(1))
+>>>     print(byte_reader.read(3))
+>>>     print(byte_reader.read(2))
+>>>     print(byte_reader.read(1))
+>>>     print(byte_reader.read(1))
+b'\x89'
+b'PNG'
+b'\r\n'
+b'\x1a'
+b'\n'
 ```
