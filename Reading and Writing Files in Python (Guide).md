@@ -297,7 +297,7 @@ rrier
 
 ### 在文件中迭代每一行
 
-读取文件的一个基本操作就是迭代每一行，西面是使用`.readline()`实现迭代的一个例子：
+读取文件的一个基本操作就是迭代每一行，下面是使用`.readline()`实现迭代的一个例子：
 ```python
 >>> with open('dog_breeds.txt', 'r') as reader:
 >>>     # Read and print the entire file line by line
