@@ -12,4 +12,4 @@ python各模块及特性，优秀文章翻译存档
 
 #### [在python中读写文件（指南-未完成）](https://github.com/Boreas514/python_advanced_features_articles/blob/master/Reading%20and%20Writing%20Files%20in%20Python%20(Guide).md)
 
-#### [使用PyInstaller轻松打包python应用（未完成）]()
+#### [使用PyInstaller轻松打包python应用（未完成）](https://github.com/Boreas514/python_advanced_features_articles/blob/master/Using%20PyInstaller%20to%20Easily%20Distribute%20Python%20Applications.md)
