@@ -408,3 +408,308 @@ b'\r\n'
 b'\x1a'
 b'\n'
 ```
+### 一个完整的例子：`dos2unix.py`
+
+现在我们把全部知识汇总起来实现一个完整的读写文件的例子。这个例子很像工具[dos2unix](https://en.wikipedia.org/wiki/Unix2dos)，它把文件中行尾的`\r\n`转换为`\n`。
+
+这个工具分为三部分组成，第一部分是`str2unix()`，该部分会把`\\r\\n`转换为`\\n`。第二部分是`dos2unix()`，它把字符串中包含的`\r\n`转换为`\n`。最后是入口区块`__main__`，它只在文件作为脚本执行时调用。可以把它看作是其他编程语言中的主函数。
+```python
+"""
+A simple script and library to convert files or strings from dos like
+line endings with Unix like line endings.
+"""
+
+import argparse
+import os
+
+
+def str2unix(input_str: str) -> str:
+    r"""\
+    Converts the string from \r\n line endings to \n
+
+    Parameters
+    ----------
+    input_str
+        The string whose line endings will be converted
+
+    Returns
+    -------
+        The converted string
+    """
+    r_str = input_str.replace('\r\n', '\n')
+    return r_str
+
+
+def dos2unix(source_file: str, dest_file: str):
+    """\
+    Coverts a file that contains Dos like line endings into Unix like
+
+    Parameters
+    ----------
+    source_file
+        The path to the source file to be converted
+    dest_file
+        The path to the converted file for output
+    """
+    # NOTE: Could add file existence checking and file overwriting
+    # protection
+    with open(source_file, 'r') as reader:
+        dos_content = reader.read()
+
+    unix_content = str2unix(dos_content)
+
+    with open(dest_file, 'w') as writer:
+        writer.write(unix_content)
+
+
+if __name__ == "__main__":
+    # Create our Argument parser and set its description
+    parser = argparse.ArgumentParser(
+        description="Script that converts a DOS like file to an Unix like file",
+    )
+
+    # Add the arguments:
+    #   - source_file: the source file we want to convert
+    #   - dest_file: the destination where the output should go
+
+    # Note: the use of the argument type of argparse.FileType could
+    # streamline some things
+    parser.add_argument(
+        'source_file',
+        help='The location of the source '
+    )
+
+    parser.add_argument(
+        '--dest_file',
+        help='Location of dest file (default: source_file appended with `_unix`',
+        default=None
+    )
+
+    # Parse the args (argparse automatically grabs the values from
+    # sys.argv)
+    args = parser.parse_args()
+
+    s_file = args.source_file
+    d_file = args.dest_file
+
+    # If the destination file wasn't passed, then assume we want to
+    # create a new file based on the old one
+    if d_file is None:
+        file_path, file_extension = os.path.splitext(s_file)
+        d_file = f'{file_path}_unix{file_extension}'
+
+    dos2unix(s_file, d_file)
+```
+
+## 提示和技巧
+
+现在你已经掌握了读写文件的基础，这里有一些提示和技巧助你的技术更加精进。
+
+### `__file__`
+
+（译者：本部分建议自己试一下，我自己尝试没得到和文章一样的结果，我定义两个文件a.py和b.py，然后在a.py中import b.py，不管我把b.py放到哪，b.py中的__file__都打印该文件在系统中的绝对路径，如能解惑可以发一个issue）
+`__file__`是模块的一个[特殊属性](https://docs.python.org/3/reference/datamodel.html)，就像`__name__`一样。它是：
+被加载模块的文件路径，如果它是被一个文件加载的。
+
+**注意：**`__file__`返回关于Python脚本最初被调用路径的相对路径。如果你需要完整系统路径，你可以用`os.getcwd()`获取运行时代码所在的当前工作路径。
+
+以下是几个例子。我一部分的工作是对硬件设备进行多项测试。对于每项测试我都用Python写一个测试脚本。这些脚本在执行时会使用`__file__`属性打印它们的工作状态。下面是文件结构：
+```
+project/
+|
+├── tests/
+|   ├── test_commanding.py
+|   ├── test_power.py
+|   ├── test_wireHousing.py
+|   └── test_leds.py
+|
+└── main.py
+```
+
+运行`main.py`产生一下输出：
+```
+>>> python main.py
+tests/test_commanding.py Started:
+tests/test_commanding.py Passed!
+tests/test_power.py Started:
+tests/test_power.py Passed!
+tests/test_wireHousing.py Started:
+tests/test_wireHousing.py Failed!
+tests/test_leds.py Started:
+tests/test_leds.py Passed!
+```
+
+这样我就可以通过`__file__`特殊属性动态地获取全部测试状态。
+
+### 追加写入
+
+有时你可能需要向一个文件末尾追加写入一些东西。通过在`mode`参数上使用`a`字符串来实现：
+```python
+with open('dog_breeds.txt', 'a') as a_writer:
+    a_writer.write('\nBeagle')
+```
+
+现在检查`dog_breeds.txt`，你能看到文件开头没变，`Beagle`已经被写入文件末尾：
+```python
+>>> with open('dog_breeds.txt', 'r') as reader:
+>>>     print(reader.read())
+Pug
+Jack Russell Terrier
+English Springer Spaniel
+German Shepherd
+Staffordshire Bull Terrier
+Cavalier King Charles Spaniel
+Golden Retriever
+West Highland White Terrier
+Boxer
+Border Terrier
+Beagle
+```
+
+### 同时操作两个文件
+
+有时你可能想同时读一个文件，并将内容写入另外一个文件。如果你想用上面写入文件的例子，其实可以合并一下：
+```python
+d_path = 'dog_breeds.txt'
+d_r_path = 'dog_breeds_reversed.txt'
+with open(d_path, 'r') as reader, open(d_r_path, 'w') as writer:
+    dog_breeds = reader.readlines()
+    writer.writelines(reversed(dog_breeds))
+```
+
+### 创建自定义的上下文管理器
+
+有时你可能需要将文件对象做成一个自定义的类来更好地操纵它。当你这样做时记得添加给类添加几个魔术方法，要么`with`语句会不可用：`__enter__`和`__exit__`。加入这两个方法之后，你创建的类被叫做[上下文管理器(context manager)](https://docs.python.org/3/library/stdtypes.html#typecontextmanager)
+
+当`with`陈述被调用时进入`__enter__()`方法，当程序退出`with`陈述代码块时`__exit__()`被调用。
+
+这有一个模板，你可以用来生成自己的定制类：
+```python
+class my_file_reader():
+    def __init__(self, file_path):
+        self.__path = file_path
+        self.__file_object = None
+
+    def __enter__(self):
+        self.__file_object = open(self.__path)
+        return self
+
+    def __exit__(self, type, val, tb):
+        self.__file_object.close()
+
+    # Additional methods implemented below
+```
+
+现在你的自定义类已经是上下文管理器了，你可以像使用内置函数`open()`一样使用这个类：
+```python
+with my_file_reader('dog_breeds.txt') as reader:
+    # Perform custom class operations
+    pass
+```
+
+下面是一个例子。还记得那条狗的照片吗？你想打开其他的`.png`文件但是不想每次打开时手动解析一下文件头。这有一个例子告诉你怎么做，这个例子还使用了自定义的迭代器，如果你对迭代器不熟，参考这篇文章[Python迭代器](https://dbader.org/blog/python-iterators)：
+```python
+class PngReader():
+    # Every .png file contains this in the header.  Use it to verify
+    # the file is indeed a .png.
+    _expected_magic = b'\x89PNG\r\n\x1a\n'
+
+    def __init__(self, file_path):
+        # Ensure the file has the right extension
+        if not file_path.endswith('.png'):
+            raise NameError("File must be a '.png' extension")
+        self.__path = file_path
+        self.__file_object = None
+
+    def __enter__(self):
+        self.__file_object = open(self.__path, 'rb')
+
+        magic = self.__file_object.read(8)
+        if magic != self._expected_magic:
+            raise TypeError("The File is not a properly formatted .png file!")
+
+        return self
+
+    def __exit__(self, type, val, tb):
+        self.__file_object.close()
+
+    def __iter__(self):
+        # This and __next__() are used to create a custom iterator
+        # See https://dbader.org/blog/python-iterators
+        return self
+
+    def __next__(self):
+        # Read the file in "Chunks"
+        # See https://en.wikipedia.org/wiki/Portable_Network_Graphics#%22Chunks%22_within_the_file
+
+        initial_data = self.__file_object.read(4)
+
+        # The file hasn't been opened or reached EOF.  This means we
+        # can't go any further so stop the iteration by raising the
+        # StopIteration.
+        if self.__file_object is None or initial_data == b'':
+            raise StopIteration
+        else:
+            # Each chunk has a len, type, data (based on len) and crc
+            # Grab these values and return them as a tuple
+            chunk_len = int.from_bytes(initial_data, byteorder='big')
+            chunk_type = self.__file_object.read(4)
+            chunk_data = self.__file_object.read(chunk_len)
+            chunk_crc = self.__file_object.read(4)
+            return chunk_len, chunk_type, chunk_data, chunk_crc
+```
+现在你可以使用自定义的上下文管理器打开和解析`.png`文件了：
+```python
+>>> with PngReader('jack_russell.png') as reader:
+>>>     for l, t, d, c in reader:
+>>>         print(f"{l:05}, {t}, {c}")
+00013, b'IHDR', b'v\x121k'
+00001, b'sRGB', b'\xae\xce\x1c\xe9'
+00009, b'pHYs', b'(<]\x19'
+00345, b'iTXt', b"L\xc2'Y"
+16384, b'IDAT', b'i\x99\x0c('
+16384, b'IDAT', b'\xb3\xfa\x9a$'
+16384, b'IDAT', b'\xff\xbf\xd1\n'
+16384, b'IDAT', b'\xc3\x9c\xb1}'
+16384, b'IDAT', b'\xe3\x02\xba\x91'
+16384, b'IDAT', b'\xa0\xa99='
+16384, b'IDAT', b'\xf4\x8b.\x92'
+16384, b'IDAT', b'\x17i\xfc\xde'
+16384, b'IDAT', b'\x8fb\x0e\xe4'
+16384, b'IDAT', b')3={'
+01040, b'IDAT', b'\xd6\xb8\xc1\x9f'
+00000, b'IEND', b'\xaeB`\x82'
+```
+
+## 不要重复造轮子
+
+以下是几个你操作文件时的常见情况，这些情况大多可以靠其他库处理。有两种常见的文件类型`.csv`和`.json`，*Real Python*已经给出了处理他们的绝妙指南：
+* [Python读写CSV文件](https://realpython.com/python-csv/)
+* [Python操作JSON数据](https://realpython.com/python-json/)
+
+此外，还有几个能帮到你的内置库：
+* `wave:`读写WAV文件（音频）
+* `aifc:`读写AIFF和AIFC文件（音频）
+* `sunau:`读写Sun AU文件
+* `tarfile:`读写tar文件
+* `zipfile:`操作ZIP文件
+* `configparser:`简单创建和解析配置文件
+* `xml.etree.ElementTree:`创建和读取XML格式文件
+* `msilib:`读写微软安装文件
+* `plistlib:`生成和解析Mac OS X .plist文件
+
+此外，PyPI上还有更多的第三方工具，以下是一些热门的：
+* `PyPDF2:`PDF工具集
+* `xlwings:`读写Excel文件
+* `Pillow:`读取和操纵图片
+
+## 你已经是出色的文件操作大师了！
+
+你做到了!现在你知道了如何使用Python处理文件，包括一些高级技术。现在用Python处理文件应该比以前更容易了，而且当你开始这样做时，会有一种成就感。
+
+在本教程中，你已经学会了：
+* 什么是文件
+* 如何正确地打开和关闭文件
+* 如何读写文件
+* 处理文件时的一些高级技术
+* 一些用于处理常见文件类型的库

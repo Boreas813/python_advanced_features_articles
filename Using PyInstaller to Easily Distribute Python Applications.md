@@ -39,3 +39,13 @@
 如果你的目标是让更多的用户使用你的应用，那这个门槛就太高了。正如[Raymond Hettinger](https://mobile.twitter.com/raymondh)在[ excellent talks](https://pyvideo.org/speaker/raymond-hettinger.html)上常说的一样，“There has to be a better way.”
 
 ## PyInstaller
+[PyInstaller](https://pyinstaller.readthedocs.io/en/stable/)抽象出这些细节，找出应用全部的依赖并集成到一起。你的用户甚至不知道他在运行一个Python项目，因为Python解释器已经集成到可执行程序中了。从此告别复杂的安装文档！
+
+PyInstaller首先会[内省](https://en.wikipedia.org/wiki/Type_introspection)你的代码，侦测你的依赖，然后将他们打包成适当的格式，这取决于你的操作系统。
+
+PyInstaller有很多有趣的细节，但现在你要学的是基本用法。如果你想要更多细节请参考[极好的PyInstaller文档](https://pyinstaller.readthedocs.io/en/stable/operating-mode.html#analysis-finding-the-files-your-program-needs)。
+
+此外，PyInstaller能创建Windows，Linux和macOS的可执行文件。Windows用户会得到一个`.exe`，Linux用户会得到一个常规可执行文件，macOS用户会得到一个`.app`文件。这里有一些说明和警告，详情见[限制]()章节。
+
+## 准备你的项目
+
