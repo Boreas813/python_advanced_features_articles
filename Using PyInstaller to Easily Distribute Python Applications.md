@@ -1,7 +1,15 @@
 # 使用PyInstaller轻松打包Python应用
 [原文链接](https://realpython.com/pyinstaller-python/)
 
-[TOC]
+<!-- TOC -->
+
+- [使用PyInstaller轻松打包Python应用](#使用pyinstaller轻松打包python应用)
+    - [发布时的问题](#发布时的问题)
+    - [PyInstaller](#pyinstaller)
+    - [准备你的项目](#准备你的项目)
+    - [使用PyInstaller](#使用pyinstaller)
+
+<!-- /TOC -->
 
 你是否嫉妒[Go](https://realpython.com/pyinstaller-python/)开发者能轻松的打包自己的程序成可执行文件然后分发给自己的用户？
 如果你的用户可以**不需要安装任何额外组件就可以运行你的应用**岂不是很棒？
@@ -48,4 +56,100 @@ PyInstaller有很多有趣的细节，但现在你要学的是基本用法。如
 此外，PyInstaller能创建Windows，Linux和macOS的可执行文件。Windows用户会得到一个`.exe`，Linux用户会得到一个常规可执行文件，macOS用户会得到一个`.app`文件。这里有一些说明和警告，详情见[限制]()章节。
 
 ## 准备你的项目
+
+PyInstaller需要你的应用满足某个最小结构，也就是你要有一个CLI脚本启动你的应用。通常做法是在项目外创建一个脚本，import你的项目然后运行`main()`。
+
+入口点脚本是一个Python脚本，技术层面来说你可以在入口点脚本中做任何事，但是最好避开[显式相对导入](https://realpython.com/absolute-vs-relative-python-imports/#relative-imports)。如果你喜欢这么做，那仍然可以在应用程序的其余部分中使用相对导入。
+
+* 注意：入口点（entry-point）指的是启动你项目或应用的代码
+
+你可以拿自己的项目试试，也可以使用[Real Python feed reader project](https://github.com/realpython/reader)。[reader project](https://github.com/realpython/reader)的详细信息在这篇教程中可以找到：[如何发布一个包到PyPI](https://realpython.com/pypi-publish-python-package/)。
+
+构建项目的可执行版本的第一步是添加一个入口点脚本。幸运的是，feed reader项目结构良好，因此只需在 *包外* 编写一个简短的脚本并运行它。举个例子，在包外创建一个叫`cli.py`的文件，代码如下：
+```python
+from reader.__main__ import main
+
+if __name__ == '__main__':
+    main()
+```
+
+`cli.py`脚本调用`main()`函数启动feed reader项目。
+
+在你自己的项目上创建入口点脚本非常简单，因为你了解你的代码。然而其他人的代码就不是很好找入口点了。在这种情况下，你可以从查看第三方项目中的`setup.py`文件开始。
+
+在项目的`setup.py`中查找对`entry_points`参数的引用。例如，这是reader项目的`setup.py`：
+```python
+    name="realpython-reader",
+    version="1.0.0",
+    description="Read the latest Real Python tutorials",
+    long_description=README,
+    long_description_content_type="text/markdown",
+    url="https://github.com/realpython/reader",
+    author="Real Python",
+    author_email="office@realpython.com",
+    license="MIT",
+    classifiers=[
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 3",
+    ],
+    packages=["reader"],
+    include_package_data=True,
+    install_requires=[
+        "feedparser", "html2text", "importlib_resources", "typing"
+    ],
+    entry_points={"console_scripts": ["realpython=reader.__main__:main"]},
+)
+```
+
+可以看到，入口点`cli.py`脚本调用了`entry_points`参数中提到的相同函数。
+
+添加完新的脚本文件之后，reader项目的文件结构如下，假设你将该项目放置在`reader`文件夹下：
+```
+reader/
+|
+├── reader/
+|   ├── __init__.py
+|   ├── __main__.py
+|   ├── config.cfg
+|   ├── feed.py
+|   └── viewer.py
+|
+├── cli.py
+├── LICENSE
+├── MANIFEST.in
+├── README.md
+├── setup.py
+└── tests
+```
+
+这里reader项目的代码没有变化，只是新建了一个叫`cli.py`的文件。入口点脚本通常是打包你的项目的必要内容。
+
+但你仍需要寻找函数内部的`__import__()`调用或导入，这种在PyInstaller术语中被称为[隐藏导入](https://pyinstaller.readthedocs.io/en/stable/when-things-go-wrong.html?highlight=Hidden#listing-hidden-imports)。
+
+如果你感觉修改应用中的导入有困难，可以手工让PyInstaller强制导入这些隐藏导入的依赖库，教程接下来会介绍怎么做。
+
+一旦你可以在项目外使用Python脚本启动你的程序，就可以尝试创建可执行文件了。
+
+## 使用PyInstaller
+
+首先从[PyPI](https://pypi.org/)安装PyInstaller，使用pip即可：
+```shell
+$ pip install pyinstaller
+```
+
+`pip`会安装PyInstaller的依赖和一个新命令：PyInstaller。你可以在Python代码中导入PyInstaller作为库使用，但你可能只会将它当作CLI工具使用。
+
+如果你想[创建自己的钩子文件](https://pyinstaller.readthedocs.io/en/stable/hooks.html#)，可以使用它的库接口。
+
+如果你的程序依赖为纯Python依赖那会增加PyInstaller打包成功的概率。如果你又很复杂的C/C++依赖那也不要强求能成功。
+
+PyInstaller支持很多流行库，[NumPy](http://www.numpy.org/)、[PyQt](https://pypi.org/project/PyQt5/)和[Matplotlib](https://matplotlib.org/)，你不需要做额外的工作处理这些库的依赖。你可以查看[PyInstaller文档](https://github.com/pyinstaller/pyinstaller/wiki/Supported-Packages)寻找更多官方支持的库。
+
+如果你的一些依赖没出现在官方文档中也不要担心，很多Python包都可以很好地工作。实际上PyInstaller非常流行，很多项目都有关于如何使用PyInstaller的说明。
+
+总之你的项目开箱即用的概率很高。
+
+要尝试创建全部参数为默认的可执行文件，只需给PyInstaller主入口点脚本的名称。
 
