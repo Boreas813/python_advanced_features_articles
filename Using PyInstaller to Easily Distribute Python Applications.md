@@ -153,3 +153,9 @@ PyInstaller支持很多流行库，[NumPy](http://www.numpy.org/)、[PyQt](https
 
 要尝试创建全部参数为默认的可执行文件，只需给PyInstaller主入口点脚本的名称。
 
+首先`cd`到你的程序入口点目录然后向`pyinstaller`命令传递你的入口点文件，这个命令是安装PyInstaller时自动安装的。
+
+例如，使用`reader`项目，`cd`到项目顶层目录后输入：
+```shell
+$ pyinstaller cli.py
+```
