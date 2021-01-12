@@ -494,7 +494,7 @@ Clinet 2: XCLAIM mystream mygroup Lora 3600000 1526569498055-0
 5) HELP                         -- Print this help.
 ```
 ## 与Kafka(TM)的区别
-（不翻译，我不关心Kafka是什么）
+（梅翻译）
 
 <h2 id='11'>Capped Streams</h2>
 
