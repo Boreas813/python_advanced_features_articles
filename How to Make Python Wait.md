@@ -379,4 +379,7 @@ if __name__ == '__main__':
 正如这些，大多数情况下操作系统提供了有效的等待机制，你需要做的就是找到如何从Python中访问他们。
 
 ## 异步中的等待
-pass
+如果你使用`asyncio`库，那你可以接触很多类似的函数。比如[asyncio.Event](https://docs.python.org/3/library/asyncio-sync.html#asyncio.Event)和[asyncio.Queue](https://docs.python.org/3/library/asyncio-queue.html)。他们都已经加入到标准库中，只不过是基于async/await编程的。
+
+## 总结
+我希望本文能促使你更仔细地考虑如何在应用程序中等待。我建议使用我提供的所有示例来熟悉这些技术，并最终使用它们来替换代码中低效的`time.sleep()`调用!
