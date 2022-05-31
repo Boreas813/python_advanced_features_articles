@@ -17,3 +17,5 @@ python各模块及特性，优秀文章翻译存档
 #### [如何让Python等待](https://github.com/Boreas514/python_advanced_features_articles/blob/master/How%20to%20Make%20Python%20Wait.md)
 
 #### [在Python中应用随机森林（未完成）]()
+
+#### [使用pandas更快的读取csv文件]()
