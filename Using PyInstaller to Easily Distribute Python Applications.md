@@ -405,11 +405,11 @@ $ pyinstaller --log-level=DEBUG cli.py 2> build.txt
  '/Users/realpython/pyinstaller/reader']
 ```
 
-## PyInstaller文档
+### PyInstaller文档
 
 [PyInstaller GitHub Wiki](https://github.com/pyinstaller/pyinstaller/wiki)有大量有用的链接可debug技巧。最有名的是[确保所有东西都正确打包](https://github.com/pyinstaller/pyinstaller/wiki/How-to-Report-Bugs#make-sure-everything-is-packaged-correctly)和[如果它搞砸了](https://github.com/pyinstaller/pyinstaller/wiki/If-Things-Go-Wrong)。
 
-## 协助依赖检查
+### 协助依赖检查
 
 你看到`ImportError`那多半是PyInstaller不能正确检测你的依赖。上文提到过，你可能使用了` __import__()`，在函数内import或其它类型的[隐藏导入](https://pyinstaller.readthedocs.io/en/stable/when-things-go-wrong.html?highlight=Hidden#listing-hidden-imports)
 
