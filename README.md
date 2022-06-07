@@ -20,4 +20,4 @@ python各模块及特性，优秀文章翻译存档
 
 #### [使用pandas更快的读取csv文件](https://github.com/Boreas514/python_advanced_features_articles/blob/master/The%20fastest%20way%20to%20read%20a%20CSV%20in%20Pandas.md)
 
-#### [TDD练习：开发基于Django的时间API]()
+#### [TDD练习：开发基于Django的时间API](https://github.com/Boreas514/python_advanced_features_articles/blob/master/TDD%20Practice%20Time%20API%20with%20Django.md)
