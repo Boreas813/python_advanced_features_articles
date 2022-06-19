@@ -24,3 +24,4 @@ python各模块及特性，优秀文章翻译存档
 
 #### [Python异步编程基础](https://github.com/Boreas514/python_advanced_features_articles/blob/master/Python%20Asynchronous%20Programming%20Fundamentals.md#%E5%8E%86%E5%8F%B2%E6%B3%A8%E9%87%8A%EF%BC%9A%E5%9F%BA%E4%BA%8E%E7%94%9F%E6%88%90%E5%99%A8%E7%9A%84%E5%8D%8F%E7%A8%8B)
 
+ #### [使用Kubernetes，Docker，GitHub Actions部署Django生产环境的完整指南（未完成）]()
