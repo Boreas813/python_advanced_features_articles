@@ -1,8 +1,8 @@
 # 使用Kubernetes，Docker，GitHub Actions部署Django生产环境的完整指南
 [原视频链接](https://www.youtube.com/watch?v=NAOsLaB6Lfc&t=7047s)
 
-## Kubernetes和Django
-空
+## Kubernetes和Django介绍
+跳过
 
 ## 要求和建议
 
@@ -12,10 +12,11 @@
 * Kubectl
 
 ## 在macOS上安装Kubectl
-空
+跳过
 
 ## 在Windows上安装Kubectl
-空
+跳过
+
 ## 创建Python虚拟环境
 
 ```shell
@@ -243,9 +244,223 @@ volumes:
 修改`.env`中的POSTGRES_HOST=0.0.0.0可以调整数据库绑定地址
 
 ## 在DigitalOcean上部署Kubernetes
-空
+跳过
 
 ## 通过kubectl连接Kubernetes
-空
+跳过
 
 ## 在Kubernetes部署你的第一个容器
+
+在根目录创建文件夹：/k8s/nginx/
+在该文件夹中创建`deployment.yaml`文件
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 3
+  selector: 
+    matchLabels:
+      app: nginx-deployment
+    template:
+      metadata:
+        labels:
+          apps: nginx-deployment
+      spec:
+        containers:
+          - name: nginx
+            image: nginx:latest
+            ports:
+              - containerPort: 80
+
+```
+
+执行命令：`kubectl apply -f k8s/nginx/deployment.yaml`
+
+## 使用负载均衡对外暴露你的部署
+
+在/k8s/nginx/创建`service.yaml`文件：
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  type: LoadBalancer
+  ports:
+    - name: http
+    protocol: TCP
+    port: 80 # 外部可访问端口
+    targetPort: 80 # 和deployment端口一致
+  selector:
+    app: nginx-deployment
+```
+
+执行命令：`kubectl apply -f k8s/nginx/service.yaml`
+
+## 部署一个最小化的FastAPI APP
+
+创建文件夹/k8s/apps/
+
+创建文件/k8s/apps/iac-python.yaml：
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iac-python-deployment
+spec:
+  replicas: 3
+  selector: 
+    matchLabels:
+      app: iac-python-deployment
+    template:
+      metadata:
+        labels:
+          apps: iac-python-deployment
+      spec:
+        containers:
+          - name: iac-python
+            image: codingforentrepreneurs/iac-python:latest # 可替换成你自己的镜像
+            env:
+              - name: PORT
+                value: "8181"
+            ports:
+              - containerPort: 8181
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iac-python-service
+spec:
+  type: LoadBalancer
+  ports:
+    - name: http
+    protocol: TCP
+    port: 80 # 外部可访问端口
+    targetPort: 8181 # 和deployment端口一致
+  selector:
+    app: iac-python-deployment
+```
+执行命令：`kubectl apply -f k8s/apps/iac-python.yaml`
+
+## DigitalOcean容器仓库
+
+跳过
+
+## 构建&推送容器到DO容器仓库
+
+跳过
+
+## 管理PG数据库
+
+创建文件`/web/.env.prod`用来存放生产配置数据，复制`.env`的内容到`.env.prod`，将其添加进ignore
+
+修改生产env配置，匹配你的数据库设置
+
+## 配置env的K8s-Secrets
+
+执行命令：`kubectl create secret generic django-k8s-web-prod-env --from-env-file=web/.env.prod`
+
+执行命令：`kubectl get secret`查看创建的secrets
+
+执行命令：`kubectl get secret django-k8s-web-prod-env -o YAML`查看具体数据
+
+## Django部署&服务
+
+在`.env`文件中添加一行用来忽视数据库SSL需求：
+
+`DB_IGNORE_SSL=true`
+
+修改django项目settings文件，添加：
+```python
+DB_IGNORE_SSL=os.environ.get("DB_IGNORE_SSL") == "ture"
+
+if DB_IS_AVAIL:
+  DATABASES = {...}
+  if not DB_IGNORE_SSL:
+    DATABASES['default']['OPTIONS'] = {
+      'sslmode': 'require'
+    }
+    
+```
+
+在`k8s/apps`下创建`django-k8s-web.yaml`文件：
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-k8s-web-deployment
+  labels:
+    app: django-k8s-web-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: django-k8s-web-deployment
+  template:
+    metadata:
+      labels:
+        app: django-k8s-web-deployment
+    spec:
+      containers:
+      - name: django-k8s-web
+        image: your-registry/django-k8s-web-deployment:latest
+        ports:
+        - containerPort: 80
+```
+
+现在我们需要关联secret和我们部署即将部署的容器
+
+执行命令：`kubectl get serviceaccount default -o YAML`可查看默认serviceaccount
+
+修改`django-k8s-web.yaml`，添加关联:
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-k8s-web-deployment
+  labels:
+    app: django-k8s-web-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: django-k8s-web-deployment
+  template:
+    metadata:
+      labels:
+        app: django-k8s-web-deployment
+    spec:
+      containers:
+      - name: django-k8s-web
+        image: your-registry/django-k8s-web-deployment:latest
+        envFrom:
+          - secretRef:
+              name: django-k8s-web-prod-env
+        env:
+          - name: PORT
+            value: "8001"
+        ports:
+        - containerPort: 8001
+      imagePullSecrets:
+        - name: cfe-k8s
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: django-k8s-web-service
+spec:
+  type: LoadBalancer
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8001
+  selector:
+    app: django-8ks-web-deployment
+```
+
+执行命令：`kubectl apply -f k8s/apps/django-k8s-web.yaml`创建服务。
+
+## 完整部署&bug修复
