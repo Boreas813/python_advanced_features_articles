@@ -224,8 +224,6 @@ services:
       - redis_data:/data
     entrypoint: redis-server --appendonly yes --port 6380
 
-
-
 volumes:
   postgres_data:
   redis_data:
@@ -241,7 +239,7 @@ volumes:
 >>> print(settings.DB_IS_AVAIL)
 ```
 
-修改`.env`中的POSTGRES_HOST=0.0.0.0可以调整数据库绑定地址
+修改`.env`中的`POSTGRES_HOST=0.0.0.0`可以调整数据库绑定地址
 
 ## 在DigitalOcean上部署Kubernetes
 跳过
@@ -382,7 +380,6 @@ if DB_IS_AVAIL:
     DATABASES['default']['OPTIONS'] = {
       'sslmode': 'require'
     }
-    
 ```
 
 在`k8s/apps`下创建`django-k8s-web.yaml`文件：
@@ -410,7 +407,7 @@ spec:
         - containerPort: 80
 ```
 
-现在我们需要关联secret和我们部署即将部署的容器
+现在我们需要关联secret和我们即将部署的容器
 
 执行命令：`kubectl get serviceaccount default -o YAML`可查看默认serviceaccount
 
@@ -464,3 +461,66 @@ spec:
 执行命令：`kubectl apply -f k8s/apps/django-k8s-web.yaml`创建服务。
 
 ## 完整部署&bug修复
+
+修改生产环境文件`.env.prod`，添加一行代码`ENV_ALLOWED_HOST=*`，并删除代码`DEBUG=1`
+
+修改django的settings文件：
+```python
+ENV_ALLOWED_HOST = os.environ.get('ENV_ALLOWED_HOST')
+ALLOWED_HOSTS = []
+if ENV_ALLOWED_HOST:
+  ALLOWED_HOSTS = [ENV_ALLOWED_HOST]
+```
+
+我们修改了配置文件，删除旧的secrets，重新执行命令创建新的secrets：`kubectl create secret generic django-k8s-web-prod-env --from-env-file=web/.env.prod`
+
+因为我们修改了settings的代码，重新构建docker镜像。 
+
+开启一个新的终端执行命令：`kubectl get pods -w`
+
+重新执行，观察新终端变化：`kubectl apply -f k8s/apps/django-k8s-web.yaml`
+
+## 编写部署指南
+
+在`web/django_k8s/`目录下创建`deployment-guide.md`文件：
+1. 测试Django
+```
+python manage.py test
+```
+2. 构建容器
+```
+docker build -f Dockerfile -t your-target-registry:label .
+```
+3. 推送镜像到仓库
+```
+docker push your-target-registry --all-tags
+```
+4. 更新k8s secrets 
+```
+kubectl delete secret django-k8s-web-prod-env
+kubectl create secret generic django-k8s-web-prod-env --from-env-file=web/.env.prod
+```
+
+5. 更新部署
+
+```
+kubectl apply -f k8s/apps/django-k8s-web.yaml
+```
+
+6. 等待rollout完成
+
+```
+kubectl rollout status deployment/django-k8s-web-deployment
+```
+
+7. migrate数据库
+```shell
+export SINGLE_POD_NAME=$(kubectl get pod -l app=django-k8s-web-deployment -o jsonpath="{.items[0].metadata.name}")
+```
+
+```shell
+kubectl exec -it $SINGLE_POD_NAME -- bash /app/migrate.sh
+```
+
+## 使用Github Actions自动测试Django
+跳过
