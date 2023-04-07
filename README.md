@@ -26,6 +26,6 @@ python各模块及特性，优秀文章翻译存档
 
  #### [使用Kubernetes，Docker，GitHub Actions部署Django生产环境的完整指南（未完成）](https://github.com/Boreas514/python_advanced_features_articles/blob/master/Deploy%20Django%20into%20Production%20with%20Kubernetes%2C%20Docker%2C%20%26%20Github%20Actions.%20Complete%20Tutorial%20Series.md)
 
- #### [理解Python web中的异步（未完成）]()
+ #### [理解Python web中的异步（未完成）](https://github.com/Boreas813/python_advanced_features_articles/blob/master/Understanding%20async%20Python%20for%20the%20web.md)
 
- #### [Python3.11：你需要尝试的新特性]()
+ #### [Python3.11：你需要尝试的新特性](https://github.com/Boreas813/python_advanced_features_articles/blob/master/Python3.11%20Cool%20New%20Features%20for%20You%20to%20try.md)
